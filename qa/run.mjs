@@ -150,6 +150,7 @@ try {
   // はじめて：遊び方が出る・文字の大きさ
   const p = await newPage();
   check("はじめて開くと遊び方が出る", await p.locator("#howto[open]").count() === 1);
+  { const p0 = await newPage(); const shown = await p0.locator("#howto[open]").count() === 1; await p0.keyboard.press("Escape"); await p0.waitForTimeout(100); const closed = await p0.locator("#howto[open]").count() === 0; await p0.reload(); await p0.waitForTimeout(150); check("遊び方を Esc で閉じたあと、開き直しても遊び方が出ない", shown && closed && await p0.locator("#howto[open]").count() === 0); await p0.close(); }
   await p.click("#howto-ok");
   check("文字の大きさ：はじめは「ふつう」（18px）", await p.evaluate(() => getComputedStyle(document.documentElement).fontSize) === "18px");
   await p.click('.fsrow button[data-fs="3"]');

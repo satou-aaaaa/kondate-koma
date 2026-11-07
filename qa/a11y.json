@@ -1,0 +1,9 @@
+{
+  "screens": [
+    { "name": "やさしい", "click": ["#go-d"] },
+    { "name": "練習", "click": ["#go-p"] },
+    { "name": "ふつう", "click": ["#go-p", ".lv button[data-t=\"1\"]"] },
+    { "name": "料理帳", "click": ["#go-dex"] },
+    { "name": "このゲームについて", "click": ["#f-about"] }
+  ]
+}

@@ -698,7 +698,7 @@ function paint() {
   $("menuwrap").innerHTML = menuHtml(P, showChip(), cur.done ? P.ans : null);
   document.querySelectorAll(".ch").forEach((b) => { const t = P.opts[+b.dataset.j], d = D[t], ng = cur.wrong.includes(t) || cut.includes(t); b.classList.toggle("ng", ng); b.disabled = ng || cur.done; b.querySelector(".cg").innerHTML = cur.wrong.includes(t) || cur.done ? chip(d) : ""; if (ng) b.setAttribute("aria-label", d.n + "（ちがう）"); });
   const h = $("hint"); if (h) h.disabled = cur.done || cur.hints >= 2;
-  $("hintbox").innerHTML = cur.hints && !cur.done ? `<div class="hint" role="status">💡 ${esc(GR[P.X].name)}が足りません。${esc(P.look)}${cur.hints >= 2 ? "<br>💡 ちがう料理を消しました。のこりは2つです。" : ""}</div>` : "";
+  $("hintbox").innerHTML = cur.hints && !cur.done ? `<div class="hint" role="status">💡 ${esc(GR[P.X].name)}が足りません。${esc(P.look)}${cur.hints >= 2 ? `<br>💡 ちがう料理を消しました。のこりは${cur.P.opts.filter((x) => !cutOf().includes(x) && !cur.wrong.includes(x)).length}つです。` : ""}</div>` : "";
 }
 function hint() { if (cur.done || cur.hints >= 2) return; if (!same(load().runs[MODE])) { toast("別の画面で先に進んでいます"); return play(); } cur.hints++; keep(); paint(); }
 function choose(j) {

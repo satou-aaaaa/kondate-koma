@@ -86,9 +86,9 @@ const RANGE = [[5, 7], [5, 6], [3, 5], [2, 2], [2, 2]]; // 2200±200kcal（基�
 }
 {
   // とことんの並び：何百回作っても、1回の中で同じ問題が出ない・作れない問題が無い
-  let dup = 0, broken = 0;
-  for (let n = 0; n < 300; n++) { const salt = "e" + n + Math.random(); const tags = [...Array(5).keys()].map((i) => `e${i % 5}|${salt}:${i}`).concat([...Array(95).keys()].map((i) => `${i < 10 ? "n" : "h"}${i % 5}|${salt}:${i + 5}`)); const keys = new Set(); for (const t of tags) { const P = G.make(t); if (!P) { broken++; continue; } const key = P.items.map((x) => x.meal + x.d).join() + P.opts.join(); if (keys.has(key)) dup++; keys.add(key); } }
-  check("とことんの100問を300回作っても、1回の中で同じ献立が出ない", dup === 0 && broken === 0, `重なり ${dup}・作れない ${broken}`);
+  let dup = 0, broken = 0, firstDup = null;
+  for (let n = 0; n < 300; n++) { const salt = "e" + n + Math.random(); const tags = [...Array(5).keys()].map((i) => `e${i % 5}|${salt}:${i}`).concat([...Array(95).keys()].map((i) => `${i < 10 ? "n" : "h"}${i % 5}|${salt}:${i + 5}`)); const keys = new Set(); for (const t of tags) { const P = G.make(t); if (!P) { broken++; continue; } const key = P.items.map((x) => x.meal + x.d).join() + P.opts.join(); if (keys.has(key)) { dup++; firstDup ??= t; } keys.add(key); } }
+  check("とことんの100問を300回作っても、1回の中で同じ献立が出ない", dup === 0 && broken === 0, `重なり ${dup}・作れない ${broken}${firstDup ? `・最初の重なり ${firstDup}` : ""}`);
 }
 
 // ---- 2. ファイルの中身 ----
@@ -228,10 +228,10 @@ try {
   {
     // 引き継ぎコードなどで数の所に文字が入っても、画面に HTML として出さない
     const q = await newPage(); await closeHow(q);
-    await q.evaluate(() => { const s = JSON.parse(localStorage.getItem("kondate-v1")) || { v: 1 }; s.ebest = '<img id="xss" src=x>'; s.dex = { e1: '"><b id="xss2">', zz: 3 }; s.food = { salad: '"><i id="xss4">', nope: 2 }; s.runs = { e: { mode: "e", id: "x", date: "2026-11-07", list: ["e1|1"], res: [], clean: '"><i id="xss3">' }, h: { list: "bad", res: [] }, p: { mode: "p", id: "y", date: "2026-11-07", list: ["constructor|1"], res: [] }, d: { mode: "d", id: "z", date: "x", list: ["e1|1"], res: [] }, a1: { mode: "a", id: "a1", date: "2026-11-04", list: ["e1|1"], res: [null] }, a2: { mode: "a", id: "a2", date: "2026-11-03", list: "bad", res: [] }, a3: { mode: "a", id: "a3", date: "2026-11-02", list: ["e1|1", "e1|2"], res: [{ m: 0 }], cur: { i: 1, tag: "e1|2", wrong: "x", hints: 0 } } }; s.days = { "2026-11-07": { m: "x" }, bad: { m: [0] }, "2026-02-30": { m: [0] } }; localStorage.setItem("kondate-v1", JSON.stringify(s)); });
+    await q.evaluate(() => { const s = JSON.parse(localStorage.getItem("kondate-v1")) || { v: 1 }; s.ebest = '<img id="xss" src=x>'; s.dex = { e1: '"><b id="xss2">', zz: 3 }; s.food = { salad: '"><i id="xss4">', nope: 2, constructor: 3 }; s.runs = { e: { mode: "e", id: "x", date: "2026-11-07", list: ["e1|1"], res: [], clean: '"><i id="xss3">' }, h: { list: "bad", res: [] }, p: { mode: "p", id: "y", date: "2026-11-07", list: ["constructor|1"], res: [] }, d: { mode: "d", id: "z", date: "x", list: ["e1|1"], res: [] }, a1: { mode: "a", id: "a1", date: "2026-11-04", list: ["e1|1"], res: [null] }, a2: { mode: "a", id: "a2", date: "2026-11-03", list: "bad", res: [] }, a4: { mode: "zz", id: "a4", date: "2026-11-02", list: ["e1|1"], res: [] }, a3: { mode: "a", id: "a3", date: "2026-11-02", list: ["e1|1", "e1|2"], res: [{ m: 0 }], cur: { i: 1, tag: "e1|2", wrong: "x", hints: 0 } } }; s.days = { "2026-11-07": { m: "x" }, bad: { m: [0] }, "2026-02-30": { m: [0] } }; localStorage.setItem("kondate-v1", JSON.stringify(s)); });
     await q.reload(); await q.waitForTimeout(250);
     const st = await q.evaluate(() => __kk.load());
-    check("記録の形を直す：数の所の文字は0に・知らない料理や種類は捨てる・形のちがう途中経過と日ごとの記録は捨てる", st.ebest === 0 && st.dex.e1 === 0 && !("zz" in st.dex) && st.food.salad === 0 && !("nope" in st.food) && st.runs.e.clean === 0 && !("h" in st.runs) && !("p" in st.runs) && !("d" in st.runs) && !("a1" in st.runs) && !("a2" in st.runs) && st.runs.a3 && st.runs.a3.cur === null && Object.keys(st.days).length === 0);
+    check("記録の形を直す：数の所の文字は0に・知らない料理や種類（constructor のような名前も）は捨てる・形のちがう途中経過と日ごとの記録は捨てる", st.ebest === 0 && st.dex.e1 === 0 && !("zz" in st.dex) && st.food.salad === 0 && !("nope" in st.food) && !Object.prototype.hasOwnProperty.call(st.food, "constructor") && st.runs.e.clean === 0 && !("h" in st.runs) && !("p" in st.runs) && !("d" in st.runs) && !("a1" in st.runs) && !("a2" in st.runs) && !("a4" in st.runs) && st.runs.a3 && st.runs.a3.cur === null && Object.keys(st.days).length === 0);
     await q.click("#go-e").catch(() => {}); await q.waitForTimeout(150);
     await q.goto(url); await q.waitForTimeout(100); await q.click("#go-dex").catch(() => {});
     check("記録の文字を HTML として出さない", await q.locator("#xss, #xss2, #xss3, #xss4").count() === 0);

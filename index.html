@@ -454,8 +454,9 @@ const num = (v) => (Number.isFinite(+v) && +v >= 0 ? Math.floor(+v) : 0);
 function tidy(s) {
   s.ebest = num(s.ebest);
   for (const q of BOXES) if (!s[q] || typeof s[q] !== "object" || Array.isArray(s[q])) s[q] = {};
-  for (const k in s.dex) if (!G.BY[k]) delete s.dex[k]; else s.dex[k] = num(s.dex[k]);
-  for (const k in s.food) if (!D[k]) delete s.food[k]; else s.food[k] = num(s.food[k]);
+  const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  for (const k in s.dex) if (!own(G.BY, k)) delete s.dex[k]; else s.dex[k] = num(s.dex[k]);
+  for (const k in s.food) if (!own(D, k)) delete s.food[k]; else s.food[k] = num(s.food[k]);
   // 日付と日ごとの記録の形も確かめ、壊れたものは捨てる（細工した引き継ぎコードで画面が止まらないように）
   const okDate = (v) => { if (typeof v !== "string" || !/^\d{4}-\d\d-\d\d$/.test(v)) return false; const t = Date.parse(v + "T00:00:00Z"); return Number.isFinite(t) && new Date(t).toISOString().slice(0, 10) === v; };
   const okTag = (t) => typeof t === "string" && Object.prototype.hasOwnProperty.call(G.BY, t.split("|")[0]);
@@ -463,7 +464,7 @@ function tidy(s) {
   for (const b of [s.days, s.hdays, s.adays]) for (const d in b) if (!okDate(d) || !okRec(b[d])) delete b[d];
   for (const m in s.runs) {
     const r = s.runs[m]; if (r === null) continue;
-    if (typeof r !== "object" || !okDate(r.date) || !Array.isArray(r.list) || !r.list.every(okTag) || !Array.isArray(r.res) || !r.res.every((x) => x && typeof x === "object" && Number.isInteger(x.m) && x.m >= 0)) { delete s.runs[m]; continue; }
+    if (typeof r !== "object" || !["d", "h", "a", "p", "e"].includes(r.mode) || !okDate(r.date) || !Array.isArray(r.list) || !r.list.every(okTag) || !Array.isArray(r.res) || !r.res.every((x) => x && typeof x === "object" && Number.isInteger(x.m) && x.m >= 0)) { delete s.runs[m]; continue; }
     if (r.cur != null && (typeof r.cur !== "object" || !Array.isArray(r.cur.wrong) || !r.cur.wrong.every((w) => typeof w === "string"))) r.cur = null; else if (r.cur) r.cur.hints = num(r.cur.hints);
     for (const q of ["clean", "miss"]) if (q in r) r[q] = num(r[q]);
   }

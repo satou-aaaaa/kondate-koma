@@ -139,7 +139,7 @@ dialog#howto h2{margin:0 0 10px;letter-spacing:.1em}
 dialog#howto ol{padding-left:1.3em;margin:0 0 12px;line-height:1.8}
 dialog#howto p{margin:0 0 10px;font-size:.9rem;line-height:1.7;color:var(--ink2)}
 dialog#howto a{color:var(--shu2);min-height:44px;display:inline-flex;align-items:center}
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;z-index:9;box-shadow:0 6px 20px #0005;max-width:90%;text-align:center;font-size:1rem}
+.toast{pointer-events:none;position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;z-index:9;box-shadow:0 6px 20px #0005;max-width:90%;text-align:center;font-size:1rem}
 footer{margin-top:auto;text-align:center;font-size:.8rem;color:var(--ink2);display:flex;gap:4px 14px;justify-content:center;flex-wrap:wrap}
 footer a{color:var(--ink2);min-height:44px;display:inline-flex;align-items:center}
 /* 読み上げのボタン（右下）が出ても、いちばん下のリンクにかぶらない（.wrap の下に 88px の余白） */
@@ -473,7 +473,8 @@ function tidy(s) {
   return s;
 }
 // 保存の前に読み直す（別のタブで進めた記録を消さない）
-function save(fn) { const s = load(); fn(s); s.t = Math.max(Date.now(), (s.t || 0) + 1); const j = JSON.stringify(s); try { localStorage.setItem(KEY, j); mem = null; } catch (e) { mem = j; } return s; }
+function saveWarn(on) { let b = document.getElementById("savewarn"); const W = "この端末に記録を保存できませんでした。ページを開き直すと、いまの記録が消えます"; if (!on) { if (b) b.remove(); return; } if (b) return; b = document.createElement("div"); b.id = "savewarn"; b.setAttribute("role", "status"); b.textContent = W; b.style.cssText = "position:sticky;top:0;z-index:9999;padding:8px 12px;background:#fff3cd;color:#000;font-size:15px;line-height:1.5;text-align:center;pointer-events:none;border-bottom:2px solid #8a6d00"; (document.body || document.documentElement).prepend(b); } // 帯は画面のいちばん上に場所を取り（ボタンに重ならない）、帯そのものが role=status で読み上げられる。保存できたら帯を消す（黙って記録が消えないように）
+function save(fn) { const s = load(); fn(s); s.t = Math.max(Date.now(), (s.t || 0) + 1); const j = JSON.stringify(s); try { localStorage.setItem(KEY, j); mem = null; saveWarn(false); } catch (e) { mem = j; saveWarn(true); } return s; }
 function streak(days) { let k = todayKey(), n = 0; if (!days[k]) k = prevDay(k); while (days[k]) { n++; k = prevDay(k); } return n; }
 const playedDays = (s) => new Set([...Object.keys(s.days), ...Object.keys(s.adays)]).size;
 const solvedAll = (s) => Object.values(s.dex).reduce((a, b) => a + (+b || 0), 0);
@@ -682,7 +683,7 @@ function play() {
   $("back").onclick = home;
   document.querySelectorAll(".ch").forEach((b) => (b.onclick = () => choose(+b.dataset.j)));
   if ($("hint")) $("hint").onclick = hint;
-  if ($("quit")) $("quit").onclick = () => { if (cur && cur.done) return; finish(); };
+  if ($("quit")) $("quit").onclick = finish; // 正解の直後でも降りられる（正解は choose で保存済みなので、その献立も数える）
   paint();
   toTop();
   // 画面を作り直すとフォーカスが body に戻るので、問題へ移す（キーボード・読み上げで続けられる）
@@ -721,6 +722,7 @@ function choose(j) {
   const s = save((s) => { const r = s.runs[MODE]; if (!same(r)) return; r.res.push({ m }); r.cur = null; if (r.mode === "e") { if (m === 0) r.clean = (r.clean || 0) + 1; r.miss = (r.miss || 0) + m; } s.dex[P.kind] = (s.dex[P.kind] || 0) + 1; s.food[P.ans] = (s.food[P.ans] || 0) + 1; });
   const r = s.runs[MODE], fin = r && r.mode !== "e" && r.res.length >= r.list.length;
   paint();
+  if ($("quit")) $("quit").textContent = `ここで降りる（${cur.i + 1}問で終える）`;
   const k = $("koma").querySelector(".koma"); if (k) k.classList.add("spin");
   document.querySelectorAll(".ch").forEach((b) => { if (P.opts[+b.dataset.j] === P.ans) b.classList.add("ok"); });
   $("msg").className = "msg"; $("msg").textContent = "";

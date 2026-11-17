@@ -232,6 +232,12 @@ try {
     check("とことんの並びの残りが少ないと、次の100問を足して続ける", (await p.evaluate(() => __kk.load().runs.e.list.length)) === 106);
     await p.click("#quit"); await p.waitForTimeout(100);
   }
+  { const q = await newPage(); await closeHow(q); await q.click("#go-e"); await solve(q); await q.click("#quit"); await q.waitForTimeout(150);
+    check("とことんで正解した直後（次へを押す前）でも「ここで降りる」で終わり、その1問が数に入る", await q.locator("#eres").count() === 1 && (await q.textContent("#eres")).includes("1問") && (await mem(q)).ebest === 1 && !(await mem(q)).runs.e); await q.context().close(); }
+  { const c = await browser.newContext({ viewport: { width: 390, height: 800 } }); await c.addInitScript(() => { window.__origSetItem = Storage.prototype.setItem; Storage.prototype.setItem = function () { throw new Error("full"); }; }); const q = await newPage(390, c); await closeHow(q); await q.click("#go-e"); await solve(q); await q.waitForTimeout(2000);
+    const warn = await q.locator("#savewarn").count(), txt = warn ? await q.textContent("#savewarn") : "";
+    await q.evaluate(() => { Storage.prototype.setItem = window.__origSetItem; }); await q.click("#next"); await solve(q); await q.waitForTimeout(100);
+    check("保存できないと帯 #savewarn がちょうど1つ出て2秒たっても残り、保存できるようになって次の献立を解くと消える", warn === 1 && txt.includes("保存できませんでした") && await q.locator("#savewarn").count() === 0, `帯 ${warn}`); await c.close(); }
   {
     // 引き継ぎコードなどで数の所に文字が入っても、画面に HTML として出さない
     const q = await newPage(); await closeHow(q);
@@ -361,6 +367,10 @@ try {
       const v = await r.evaluate(() => { const e = [...document.querySelectorAll(".title")].find((x) => x.offsetParent); if (!e) return null; const h = e.getBoundingClientRect().height; const f = e.style.flex; e.style.flex = "none"; const n = e.getBoundingClientRect().height; e.style.flex = f; return h - n; });
       if (v === null || v > 4) big.push(`${w}x${h}:${v === null ? "題なし" : "+" + Math.round(v) + "px"}`); }
     check("ホームの題は縦長の画面でも縦に伸びない（820×1180・390×844・1280×800）", big.length === 0, big.join(" ")); await c.close(); }
+{ // 知らせ（.toast）は下のボタンを塞がない（shared-workflows incidents/2026-11-17-known-game-bugs-spread.md）
+  const pt = await browser.newPage(); await pt.goto(url);
+  check("知らせ（.toast）が出ていても、その下のボタンを押せる（pointer-events:none）", await pt.evaluate(() => { const d = document.createElement("div"); d.className = "toast"; document.body.appendChild(d); const v = getComputedStyle(d).pointerEvents; d.remove(); return v === "none"; }));
+  await pt.close(); }
 await browser.close();
 server.close();
 check("画面のエラーが無い", errors.length === 0, errors.slice(0, 3).join(" | "));

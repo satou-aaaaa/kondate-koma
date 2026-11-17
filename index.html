@@ -751,6 +751,8 @@ function choose(j) {
   // 正解
   { const jd = Depth.judge(true); if (jd && jd.sure) { cur.jd = jd; sureCount(true); } }
   cur.done = true; buzz([10, 40, 10]);
+  // 別のタブで同じ問題にヒント・まちがいを使って保存していたら、それも数に入れる（keep と同じ合わせ方。復習の段を進めすぎない。2026-11-17 CodeRabbit）
+  { const sv = load().runs[MODE], was = same(sv) && sv.cur && sv.cur.i === cur.i && sv.cur.tag === cur.tag ? sv.cur : null; if (was) { cur.hints = Math.max(cur.hints, num(was.hints)); for (const w of Array.isArray(was.wrong) ? was.wrong : []) if (!cur.wrong.includes(w)) cur.wrong.push(w); } }
   const m = missOf(), st = starsOf(m);
   Depth.mark(cur.tag, m, revName(P)); // まちがい・ヒントがあれば復習へ、復習中なら次の間へ
   const s = save((s) => { const r = s.runs[MODE]; if (!same(r)) return; r.res.push({ m }); r.cur = null; if (r.mode === "e") { if (m === 0) r.clean = (r.clean || 0) + 1; r.miss = (r.miss || 0) + m; } s.dex[P.kind] = (s.dex[P.kind] || 0) + 1; s.food[P.ans] = (s.food[P.ans] || 0) + 1; });

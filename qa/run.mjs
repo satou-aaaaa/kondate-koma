@@ -342,6 +342,15 @@ try {
       await q.click("#hint"); await q.waitForTimeout(80);
       check("別のタブで先に進んだ古い画面でヒントを押しても、復習の段は戻らない", await q.evaluate((t) => JSON.parse(localStorage.getItem("kondate-depth")).rv[t].s, tq) === 2);
     }
+    // 別のタブで同じ問題にヒントを使って保存したあと、この画面で正解しても、復習の段は進めない（そのヒントも数に入れる。2026-11-17 CodeRabbit）
+    { const tq = "n0|dh1";
+      await q.evaluate((t) => { __kk.save((s) => { s.runs.p = { mode: "p", date: __kk.todayKey(), list: [t, "e1|dh2"], res: [], cur: null, id: "dh" }; }); const d = JSON.parse(localStorage.getItem("kondate-depth")); d.rv[t] = { s: 1, due: "2026-01-01", t: 9 }; localStorage.setItem("kondate-depth", JSON.stringify(d)); __kk.play("p"); }, tq);
+      await q.evaluate((t) => __kk.save((s) => { s.runs.p.cur = { i: 0, tag: t, wrong: [], hints: 1, jd: null }; }), tq);
+      await q.click(`.ch[data-j="${await ansIdx(q)}"]`); await q.waitForSelector(".verdict");
+      const r = await q.evaluate((t) => [JSON.parse(localStorage.getItem("kondate-depth")).rv[t], __kk.load().runs.p.res[0]], tq);
+      check("別のタブで同じ問題にヒントを使っていたら、この画面で正解しても復習の段は進まず、ヒントの数も入る", r[0] && r[0].s === 0 && r[1] && r[1].m === 1, JSON.stringify(r));
+      await q.evaluate(() => __kk.save((s) => { s.runs.p = null; }));
+    }
     // 復習の途中でヒントを使って日の来た問題が0になっても・日が替わっても、ホームの「復習の続きから」で戻れる
     { const rk = Object.keys(dp2.rv)[0];
       await q.evaluate((k) => { __kk.save((s) => { s.runs.p = null; }); const d = JSON.parse(localStorage.getItem("kondate-depth")); d.rv = { [k]: { s: 0, due: "2026-01-01", t: 3 } }; localStorage.setItem("kondate-depth", JSON.stringify(d)); }, rk);

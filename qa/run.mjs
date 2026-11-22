@@ -153,8 +153,8 @@ async function solve(p, { wrong = 0 } = {}) {
 try {
   // はじめて：遊び方が出る・文字の大きさ
   const p = await newPage();
-  check("はじめて開くと遊び方が出る", await p.locator("#core-coach").count() === 1);
-  { let ok = 0; for (let k = 0; k < 10; k++) { const p0 = await newPage(); const shown = await p0.locator("#core-coach").count() === 1; await p0.keyboard.press("Escape"); const tut = await p0.evaluate(() => { try { return !!JSON.parse(localStorage.getItem("kondate-v1")).tut; } catch { return false; } }); await p0.reload(); await p0.waitForTimeout(150); if (shown && tut && await p0.locator("#howto[open]").count() === 0) ok++; await p0.close(); } check("遊び方を Esc で閉じたその場で記録が残り、すぐ開き直しても遊び方が出ない（10回）", ok === 10, `${ok}/10`); }
+  check("はじめて開くと遊び方が出る", await p.locator("#core-coach").waitFor({ timeout: 3000 }).then(() => true, () => false));
+  { let ok = 0; for (let k = 0; k < 10; k++) { const p0 = await newPage(); const shown = await p0.locator("#core-coach").waitFor({ timeout: 3000 }).then(() => true, () => false); await p0.keyboard.press("Escape"); const tut = await p0.evaluate(() => { try { return !!JSON.parse(localStorage.getItem("kondate-v1")).tut; } catch { return false; } }); await p0.reload(); await p0.waitForTimeout(150); if (shown && tut && await p0.locator("#howto[open]").count() === 0) ok++; await p0.close(); } check("遊び方を Esc で閉じたその場で記録が残り、すぐ開き直しても遊び方が出ない（10回）", ok === 10, `${ok}/10`); }
   await firstClose(p);
   check("文字の大きさ：はじめは「ふつう」（18px）", await p.evaluate(() => getComputedStyle(document.documentElement).fontSize) === "18px");
   await p.click('.fsrow button[data-fs="3"]');

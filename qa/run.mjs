@@ -15,6 +15,7 @@ import { checkDepth } from "./depth-check.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const results = [];
 const check = (name, ok, detail = "") => results.push({ name, ok: !!ok, detail: String(detail).slice(0, 400) });
+const firstClose = async (q) => { if (await q.locator("#howto[open]").count()) await q.click("#howto-ok"); if (await q.locator("#core-coach").count()) { await q.evaluate(() => Core.coach.leave()); await q.waitForTimeout(100); } }; // はじめての練習の吹き出しをやめてホームへ（sync-template の migrateFirstQa が足した）
 const G = createRequire(import.meta.url)(path.join(root, "gen.js"));
 const GROUPS_NAME = ["主食", "副菜", "主菜", "牛乳・乳製品", "果物"];
 
@@ -139,7 +140,7 @@ async function newPage(w = 390, ctx) {
   await p.goto(url); await p.waitForTimeout(200);
   return p;
 }
-const closeHow = async (p) => { if (await p.locator("#howto[open]").count()) await p.click("#howto-ok"); };
+const closeHow = async (p) => { await firstClose(p); };
 const ansIdx = (p) => p.evaluate(() => { const c = __kk.cur(); return c.P.opts.indexOf(c.P.ans); });
 const wrongIdx = (p) => p.evaluate(() => { const c = __kk.cur(); return c.P.opts.findIndex((o) => o !== c.P.ans && !c.wrong.includes(o)); });
 const mem = (p) => p.evaluate(() => JSON.parse(localStorage.getItem("kondate-v1") || "{}"));
@@ -152,9 +153,9 @@ async function solve(p, { wrong = 0 } = {}) {
 try {
   // はじめて：遊び方が出る・文字の大きさ
   const p = await newPage();
-  check("はじめて開くと遊び方が出る", await p.locator("#howto[open]").count() === 1);
-  { let ok = 0; for (let k = 0; k < 10; k++) { const p0 = await newPage(); const shown = await p0.locator("#howto[open]").count() === 1; await p0.keyboard.press("Escape"); const tut = await p0.evaluate(() => { try { return !!JSON.parse(localStorage.getItem("kondate-v1")).tut; } catch { return false; } }); await p0.reload(); await p0.waitForTimeout(150); if (shown && tut && await p0.locator("#howto[open]").count() === 0) ok++; await p0.close(); } check("遊び方を Esc で閉じたその場で記録が残り、すぐ開き直しても遊び方が出ない（10回）", ok === 10, `${ok}/10`); }
-  await p.click("#howto-ok");
+  check("はじめて開くと遊び方が出る", await p.locator("#core-coach").count() === 1);
+  { let ok = 0; for (let k = 0; k < 10; k++) { const p0 = await newPage(); const shown = await p0.locator("#core-coach").count() === 1; await p0.keyboard.press("Escape"); const tut = await p0.evaluate(() => { try { return !!JSON.parse(localStorage.getItem("kondate-v1")).tut; } catch { return false; } }); await p0.reload(); await p0.waitForTimeout(150); if (shown && tut && await p0.locator("#howto[open]").count() === 0) ok++; await p0.close(); } check("遊び方を Esc で閉じたその場で記録が残り、すぐ開き直しても遊び方が出ない（10回）", ok === 10, `${ok}/10`); }
+  await firstClose(p);
   check("文字の大きさ：はじめは「ふつう」（18px）", await p.evaluate(() => getComputedStyle(document.documentElement).fontSize) === "18px");
   await p.click('.fsrow button[data-fs="3"]');
   await p.reload(); await p.waitForTimeout(150);
@@ -429,7 +430,7 @@ try {
 // 引き継ぎコード（shared-workflows template/qa/transfer-check.mjs）
 try {
   const sample = { "kondate-v1": JSON.stringify({ v: 1, tut: true, days: { "2026-11-07": { m: [0, 1, 0, 0, 2], k: ["e1", "e3", "n4", "n0", "h2"] } }, hdays: {}, adays: {}, dex: { e1: 1, e3: 1, n4: 1, n0: 1, h2: 1 }, food: { yasaiitame: 1, "milk-h": 1, mikan: 1, udon: 1, natto: 1 }, runs: {}, kofi: {}, ach: {}, ebest: 7, t: 1 }), "kondate-fs": "3", "kondate-depth": JSON.stringify({ v: 1, rv: { "e1|x1": { s: 1, due: "2026-11-20", t: 5 } } }) }; // 復習の記録も引き継ぐかを見る
-  await checkTransfer({ browser, url, game: "kondate-koma", sample, check, open: async (pg) => { if (await pg.locator("#howto[open]").count()) await pg.click("#howto-ok"); } });
+  await checkTransfer({ browser, url, game: "kondate-koma", sample, check, open: async (pg) => { await firstClose(pg); } });
 } catch (e) { check("引き継ぎの検査が最後まで動く", false, e.message.split("\n")[0]); }
   { const c = await browser.newContext(); const r = await c.newPage(); const big = []; // 題が h1{flex:1} で縦に伸び（伸びない形と比べて4pxより高ければ失敗）、iPad の縦で大きなすき間が出た（shared-workflows incidents/2026-11-07-title-stretched.md）
     for (const [w, h] of [[820, 1180], [390, 844], [1280, 800]]) { await r.setViewportSize({ width: w, height: h }); await r.goto(url); await r.waitForTimeout(200); await r.keyboard.press("Escape"); await r.waitForTimeout(100);
